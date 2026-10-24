@@ -64,18 +64,25 @@ Select the model downloaded by the setup script, such as `qwen2.5-coder:3b`. Kee
 
 The exact Settings labels can vary by Odysseus version. Do not use the Docker host endpoint unless Odysseus itself is running in Docker.
 
-## Enable coding-agent tools
+## Use Odysseus as a coding agent
 
-Odysseus's agent is a workspace with a model backend, not an extension that automatically attaches to a VS Code window. To use it for a codebase:
+Odysseus can use its Agent mode plus file and shell tools to inspect and change a project. It is not an editor plugin that attaches to a VS Code window; you work in Odysseus chat and review the resulting changes in your normal editor. For each coding task:
 
-1. In Odysseus, open the agent/chat settings and enable its file read/write and shell tools for the admin account. These tools are admin-only in Odysseus.
-2. Select or open only the project folder you intend the agent to work in, where the current Odysseus version permits it.
-3. Import [`skills/coding-agent/SKILL.md`](skills/coding-agent/SKILL.md) as a skill and enable it for coding sessions.
-4. Ask the agent to inspect the project first. Review each proposed file path and shell command, and approve actions one at a time.
+1. Import [`skills/coding-agent/SKILL.md`](skills/coding-agent/SKILL.md) through Odysseus Skills and enable it for the coding chat. Review the skill before importing it; skills are instructions supplied to the model.
+2. Start an Agent-mode chat and name the exact project directory in your first request. This lets Odysseus bind file and shell operations to the intended workspace. For example:
 
-Odysseus's shell and file tools are **not sandboxed**; they run with the permissions of the user running Odysseus. Do not expose the app publicly, disable authentication, or blanket-approve tools. Keep it bound to localhost for initial use. Do not add email, calendar, MCP, or network tools unless you specifically need them. A local model keeps prompts on-device, but using web search, cloud providers, external MCP servers, or network access can send data elsewhere.
+	```text
+	Please work as my coding agent in /absolute/path/to/my-project. Inspect the project, then implement [describe the change]. Run the relevant tests and summarize the files changed and results. Ask before installing packages or doing anything outside this project.
+	```
 
-For inline completions and direct VS Code workflow, Odysseus alone is not enough; pair the local Ollama model with a VS Code extension that supports Ollama, such as Continue.
+	On Windows, use the full project path, for example `C:\Users\YourName\source\my-project`. If Odysseus shows a workspace selector, choose the same project there too.
+
+3. If the agent cannot inspect or edit files, sign in with an admin account and check that Agent use and shell/file permissions are enabled in Odysseus user privileges and that those tools are not globally disabled. The tool approvals should remain enabled; review each exact file path or command before approving it.
+4. Check the diff in your editor and run or review the reported tests before accepting the work.
+
+Odysseus's shell and file tools are **not sandboxed**; they run with the permissions of the user running Odysseus. Workspace selection helps keep the task scoped, but it is not an operating-system security boundary. Keep Odysseus on localhost, keep authentication enabled, and do not blanket-approve tools. Do not enable email, calendar, MCP, or web tools for coding unless needed. A local model keeps model prompts on-device, but using cloud providers, web search, or external MCP servers can send data elsewhere.
+
+For inline completions and direct VS Code workflow, pair the local Ollama model with a VS Code extension such as Continue. Continue provides the editor integration; Odysseus provides its own browser-based agent workspace.
 
 ## Official references
 
