@@ -27,9 +27,9 @@ fi
 
 if command -v ollama >/dev/null 2>&1; then
   printf '\nChoose a coding model to download (requires free disk space):\n'
-  printf '  1) qwen2.5-coder:3b  (small, suitable for limited memory)\n'
-  printf '  2) qwen2.5-coder:7b  (better coding, 16 GB system memory recommended)\n'
-  printf '  3) qwen2.5-coder:14b (stronger, 32 GB system memory recommended)\n'
+  printf '  1) qwen2.5-coder:3b  (about 2 GB; best starting point for 8 GB RAM)\n'
+  printf '  2) qwen2.5-coder:7b  (about 5 GB; 16 GB RAM recommended)\n'
+  printf '  3) qwen2.5-coder:14b (about 9 GB; 32 GB RAM recommended)\n'
   read -r -p 'Model [1/2/3, default 1]: ' model_choice
   case "${model_choice:-1}" in
     1) model="qwen2.5-coder:3b" ;;
@@ -38,9 +38,19 @@ if command -v ollama >/dev/null 2>&1; then
     *) printf 'Invalid model choice.\n' >&2; exit 2 ;;
   esac
   ollama pull "$model"
+  if ! ollama list | awk 'NR > 1 { print $1 }' | grep -Fxq "$model"; then
+    printf 'Ollama did not report the selected model after download: %s\n' "$model" >&2
+    exit 1
+  fi
+  printf '\nModel is downloaded: %s\n' "$model"
+  printf 'In Odysseus Settings, add an Ollama/OpenAI-compatible provider:\n'
+  printf '  Base URL: http://localhost:11434/v1\n'
+  printf '  Model:    %s\n' "$model"
 else
-  printf '\nOllama is not installed or not on PATH. Install it from https://ollama.com/download, then run:\n'
+  printf '\nOllama is not installed or not on PATH, so no model can be downloaded yet.\n'
+  printf 'Install and open Ollama from https://ollama.com/download, then run:\n'
   printf '  ollama pull qwen2.5-coder:3b\n'
+  printf 'Then add it in Odysseus Settings with base URL http://localhost:11434/v1\n'
 fi
 
 printf '\nStarting Odysseus. Keep this Terminal window open while it runs.\n'

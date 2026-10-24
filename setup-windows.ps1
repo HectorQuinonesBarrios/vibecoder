@@ -27,9 +27,9 @@ $ollama = Get-Command ollama -ErrorAction SilentlyContinue
 if ($ollama) {
     Write-Host ''
     Write-Host 'Choose a coding model to download (requires free disk space):'
-    Write-Host '  1) qwen2.5-coder:3b  (small, suitable for limited memory)'
-    Write-Host '  2) qwen2.5-coder:7b  (better coding, 16 GB system memory recommended)'
-    Write-Host '  3) qwen2.5-coder:14b (stronger, 32 GB system memory recommended)'
+    Write-Host '  1) qwen2.5-coder:3b  (about 2 GB; best starting point for 8 GB RAM)'
+    Write-Host '  2) qwen2.5-coder:7b  (about 5 GB; 16 GB RAM recommended)'
+    Write-Host '  3) qwen2.5-coder:14b (about 9 GB; 32 GB RAM recommended)'
     $choice = Read-Host 'Model [1/2/3, default 1]'
     if ([string]::IsNullOrWhiteSpace($choice)) { $choice = '1' }
     $model = switch ($choice) {
@@ -40,10 +40,21 @@ if ($ollama) {
     }
     ollama pull $model
     if ($LASTEXITCODE -ne 0) { throw 'Ollama could not download the model. Check that Ollama is running.' }
+    $availableModels = ollama list
+    if ($LASTEXITCODE -ne 0 -or -not ($availableModels | Select-String -SimpleMatch $model)) {
+        throw "Ollama did not report the selected model after download: $model"
+    }
+    Write-Host ''
+    Write-Host "Model is downloaded: $model"
+    Write-Host 'In Odysseus Settings, add an Ollama/OpenAI-compatible provider:'
+    Write-Host '  Base URL: http://localhost:11434/v1'
+    Write-Host "  Model:    $model"
 } else {
     Write-Host ''
-    Write-Host 'Ollama is not installed or not on PATH. Install it from https://ollama.com/download, then run:'
+    Write-Host 'Ollama is not installed or not on PATH, so no model can be downloaded yet.'
+    Write-Host 'Install and open Ollama from https://ollama.com/download, then run:'
     Write-Host '  ollama pull qwen2.5-coder:3b'
+    Write-Host 'Then add it in Odysseus Settings with base URL http://localhost:11434/v1'
 }
 
 Write-Host ''

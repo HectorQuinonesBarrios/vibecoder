@@ -6,8 +6,8 @@ This starter automates a native Odysseus install and can download a local coding
 
 - Review the scripts before execution. They clone and run software from `https://github.com/odysseus-dev/odysseus` and install its Python dependencies.
 - Install Git. On macOS, install Homebrew; Odysseus's native launcher uses it for dependencies. On Windows, install Git for Windows.
-- For local model responses, install Ollama from [ollama.com/download](https://ollama.com/download). The scripts continue without Ollama, but no model will be downloaded.
-- A local model needs RAM and disk space. Start with the 3B option on a modest computer; 7B is a better coding starting point with about 16 GB system memory; 14B is intended for systems with about 32 GB. These are practical estimates, not guarantees.
+- For local model responses, install and open Ollama from [ollama.com/download](https://ollama.com/download) before running the setup script. The script downloads your selected model only when Ollama is installed and running.
+- Recommended starting model: `qwen2.5-coder:3b` (about 2 GB download, suitable starting point for 8 GB RAM). Choose `qwen2.5-coder:7b` (about 5 GB; 16 GB RAM recommended) for stronger coding, or `qwen2.5-coder:14b` (about 9 GB; 32 GB RAM recommended). Actual memory needs depend on context length and other apps.
 
 ## Install and run
 
@@ -36,13 +36,13 @@ Both scripts use `~/odysseus` by default. To choose another install directory, s
 
 ## Connect the model
 
-In Odysseus, open Settings and add the Ollama provider using the OpenAI-compatible endpoint:
+Downloading a model into Ollama does not automatically register it in Odysseus. This separate provider step is why Odysseus may say that no model is available. In Odysseus, open Settings, add an Ollama/OpenAI-compatible provider, and enter:
 
 ```text
 http://localhost:11434/v1
 ```
 
-Select the model downloaded by the setup script, such as `qwen2.5-coder:3b`. Keep Ollama running while using Odysseus. If you install Ollama after the first run, download a model with `ollama pull qwen2.5-coder:3b`.
+Select the model downloaded by the setup script, such as `qwen2.5-coder:3b`. Keep Ollama running while using Odysseus. If you install Ollama after the first run, open its app and run `ollama pull qwen2.5-coder:3b`, then add the provider above. The setup scripts now print these provider values after a successful model download.
 
 The exact Settings labels can vary by Odysseus version. Do not use the Docker host endpoint unless Odysseus itself is running in Docker.
 
