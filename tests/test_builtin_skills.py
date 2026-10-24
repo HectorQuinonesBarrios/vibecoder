@@ -9,6 +9,7 @@ from src.tools.system import do_manage_skills
 EXPECTED_BUILTIN_SKILLS = {
     "action-evidence-synthesis",
     "artifact-completion",
+    "coding-agent",
     "developer-docs",
     "multimodal-evidence",
     "reviewable-external-draft",
@@ -77,6 +78,27 @@ def test_builtin_skills_are_installed_before_first_user_setup(tmp_path):
     assert all(not skill.get("owner") for skill in manager.load_all())
     assert all(skill["status"] == "published" for skill in manager.load_all())
     assert all(skill["confidence"] == 1.0 for skill in manager.load_all())
+
+
+def test_coding_agent_builtin_skill_teaches_implementation_and_validation(tmp_path):
+    manager = SkillsManager(str(tmp_path))
+
+    install_builtin_skills(manager, [])
+    coding_skill = next(skill for skill in manager.load_all() if skill["name"] == "coding-agent")
+    procedure = " ".join(coding_skill["procedure"]).lower()
+
+    assert coding_skill["source"] == "builtin"
+    assert "smallest coherent implementation" in procedure
+    assert "active project workspace" in procedure
+    assert "narrowest relevant test" in procedure
+
+    matched = manager.get_relevant_skills(
+        "Implement, debug, refactor, and test software in my selected project workspace using Odysseus file and shell tools.",
+        skills=manager.load_all(),
+        threshold=0.25,
+        published_only=True,
+    )
+    assert any(skill["name"] == "coding-agent" for skill in matched)
 
 
 def test_builtin_skills_are_installed_per_owner_and_are_idempotent(tmp_path):
