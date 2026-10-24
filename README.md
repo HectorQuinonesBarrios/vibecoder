@@ -34,6 +34,24 @@ After the server starts, open `http://127.0.0.1:7000` in your browser. Upstream 
 
 Both scripts use `~/odysseus` by default. To choose another install directory, set `ODYSSEUS_HOME` before running the script. Existing checkouts are not updated automatically.
 
+## Start both services
+
+After setup, use the startup script whenever Odysseus says Ollama is offline. It checks Ollama first, starts its local server if needed, then starts Odysseus and opens the browser. If Ollama has no models, it offers to download `qwen2.5-coder:3b`.
+
+macOS:
+
+```sh
+./start-macos.sh
+```
+
+Windows PowerShell:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\start-windows.ps1
+```
+
+The scripts assume the native install directory `~/odysseus` (or `ODYSSEUS_HOME` if customized). Keep authentication enabled and use these scripts only for localhost access unless you separately configure a secure private network route.
+
 ## Connect the model
 
 Downloading a model into Ollama does not automatically register it in Odysseus. This separate provider step is why Odysseus may say that no model is available. In Odysseus, open Settings, add an Ollama/OpenAI-compatible provider, and enter:
