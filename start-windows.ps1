@@ -8,6 +8,9 @@ $ollamaLog = Join-Path $logDir 'ollama.stdout.log'
 $ollamaErrorLog = Join-Path $logDir 'ollama.stderr.log'
 $odysseusLog = Join-Path $logDir 'odysseus.stdout.log'
 $odysseusErrorLog = Join-Path $logDir 'odysseus.stderr.log'
+$stateDir = Join-Path $env:LOCALAPPDATA 'Odysseus'
+$ollamaPidFile = Join-Path $stateDir 'ollama.pid'
+$odysseusPidFile = Join-Path $stateDir 'odysseus.pid'
 
 if (-not (Test-Path (Join-Path $installDir 'launch-windows.ps1'))) {
     throw "Odysseus was not found at $installDir. Run setup-windows.ps1 first."
@@ -19,13 +22,15 @@ if (-not $ollama) {
 }
 
 New-Item -ItemType Directory -Force -Path $logDir | Out-Null
+New-Item -ItemType Directory -Force -Path $stateDir | Out-Null
 
 try {
     Invoke-WebRequest -Uri $ollamaUrl -TimeoutSec 2 -UseBasicParsing | Out-Null
     Write-Host 'Ollama is already online.'
 } catch {
     Write-Host 'Starting Ollama...'
-    Start-Process -FilePath $ollama.Source -ArgumentList 'serve' -WindowStyle Hidden -RedirectStandardOutput $ollamaLog -RedirectStandardError $ollamaErrorLog | Out-Null
+    $ollamaProcess = Start-Process -FilePath $ollama.Source -ArgumentList 'serve' -WindowStyle Hidden -RedirectStandardOutput $ollamaLog -RedirectStandardError $ollamaErrorLog -PassThru
+    Set-Content -Path $ollamaPidFile -Value $ollamaProcess.Id
     $ollamaReady = $false
     for ($attempt = 0; $attempt -lt 45; $attempt++) {
         Start-Sleep -Seconds 1
@@ -62,7 +67,8 @@ try {
 
 if (-not $odysseusReady) {
     Write-Host 'Starting Odysseus...'
-    Start-Process -FilePath 'powershell.exe' -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', '.\launch-windows.ps1') -WorkingDirectory $installDir -WindowStyle Hidden -RedirectStandardOutput $odysseusLog -RedirectStandardError $odysseusErrorLog | Out-Null
+    $odysseusProcess = Start-Process -FilePath 'powershell.exe' -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', '.\launch-windows.ps1') -WorkingDirectory $installDir -WindowStyle Hidden -RedirectStandardOutput $odysseusLog -RedirectStandardError $odysseusErrorLog -PassThru
+    Set-Content -Path $odysseusPidFile -Value $odysseusProcess.Id
     for ($attempt = 0; $attempt -lt 90; $attempt++) {
         Start-Sleep -Seconds 1
         try {

@@ -5,6 +5,7 @@ install_dir="${ODYSSEUS_HOME:-$HOME/odysseus}"
 ollama_url="http://127.0.0.1:11434/api/tags"
 odysseus_url="http://127.0.0.1:7860"
 log_dir="$HOME/Library/Logs/odysseus"
+state_dir="$HOME/Library/Application Support/Odysseus"
 
 if [[ ! -x "$install_dir/start-macos.sh" ]]; then
   printf 'Odysseus was not found at %s. Run setup-macos.sh first.\n' "$install_dir" >&2
@@ -16,11 +17,13 @@ if ! command -v ollama >/dev/null 2>&1; then
   exit 1
 fi
 
-mkdir -p "$log_dir"
+mkdir -p "$log_dir" "$state_dir"
 
 if ! curl -fsS "$ollama_url" >/dev/null 2>&1; then
   printf 'Starting Ollama...\n'
   nohup ollama serve >"$log_dir/ollama.log" 2>&1 </dev/null &
+  ollama_pid=$!
+  printf '%s\n' "$ollama_pid" >"$state_dir/ollama.pid"
   for attempt in {1..45}; do
     if curl -fsS "$ollama_url" >/dev/null 2>&1; then
       break
@@ -47,6 +50,8 @@ fi
 if ! curl -fsS "$odysseus_url" >/dev/null 2>&1; then
   printf 'Starting Odysseus...\n'
   nohup "$install_dir/start-macos.sh" >"$log_dir/odysseus.log" 2>&1 </dev/null &
+  odysseus_pid=$!
+  printf '%s\n' "$odysseus_pid" >"$state_dir/odysseus.pid"
   for attempt in {1..90}; do
     if curl -fsS "$odysseus_url" >/dev/null 2>&1; then
       break

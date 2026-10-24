@@ -52,6 +52,22 @@ powershell -ExecutionPolicy Bypass -File .\start-windows.ps1
 
 The scripts assume the native install directory `~/odysseus` (or `ODYSSEUS_HOME` if customized). Keep authentication enabled and use these scripts only for localhost access unless you separately configure a secure private network route.
 
+To stop the services that these scripts started:
+
+macOS:
+
+```sh
+./stop-macos.sh
+```
+
+Windows PowerShell:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\stop-windows.ps1
+```
+
+The stop scripts use recorded process IDs and verify the process before stopping it. They leave Ollama or Odysseus running if it was already running before the startup script.
+
 ## Connect the model
 
 Downloading a model into Ollama does not automatically register it in Odysseus. This separate provider step is why Odysseus may say that no model is available. In Odysseus, open Settings, add an Ollama/OpenAI-compatible provider, and enter:
