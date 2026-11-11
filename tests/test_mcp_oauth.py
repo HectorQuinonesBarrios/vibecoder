@@ -254,7 +254,7 @@ def test_redirect_base_override_is_documented():
 _LAUNCHERS = (
     # file, the export, the uvicorn flag it has to agree with
     ("start-macos.sh", 'export APP_PORT="$PORT"', '--port "$PORT"'),
-    ("build-macos-app.sh", 'export APP_PORT="$PORT"', '--port "$PORT"'),
+    ("build-macos-launcher.sh", 'export APP_PORT="$PORT"', '--port "$PORT"'),
     ("launch-windows.ps1", "$env:APP_PORT = $Port", "--port $Port"),
 )
 
@@ -264,6 +264,25 @@ def test_launchers_export_the_port_they_serve_on():
         text = (_repo_root() / name).read_text(encoding="utf-8")
         assert uvicorn_flag in text, f"{name}: launcher no longer passes {uvicorn_flag}"
         assert export in text, f"{name}: serves on a port the app cannot read back"
+
+
+def test_macos_app_launcher_selects_a_default_coding_workspace():
+    text = (_repo_root() / "build-macos-launcher.sh").read_text(encoding="utf-8")
+
+    assert "choose folder with prompt \"Choose a project for the Odysseus coding agent\"" in text
+    assert 'export ODYSSEUS_WORKSPACE_DEFAULT="$WORKSPACE"' in text
+    assert "ODYSSEUS_WORKSPACE_DEFAULT" in text
+    assert "Just open the UI; the in-app Workspace picker can switch projects." in text
+
+
+def test_macos_app_launcher_runs_first_setup_automatically():
+    text = (_repo_root() / "build-macos-launcher.sh").read_text(encoding="utf-8")
+
+    assert 'if [ ! -x "$UVICORN" ] || [ ! -f "$INSTALL_DIR/venv/.requirements_hash" ]; then' in text
+    assert 'ODYSSEUS_NO_OPEN=1 ODYSSEUS_PORT="$PORT" ODYSSEUS_HOST=127.0.0.1 ./start-macos.sh' in text
+    assert 'export ODYSSEUS_ADMIN_PASSWORD="$FIRST_ADMIN_PASSWORD"' in text
+    assert "First login for Odysseus:" in text
+    assert "Odysseus isn't set up yet. Open Terminal" not in text
 
 
 # ── Callback & Exchange Expired State Handling ───────────────────

@@ -93,11 +93,36 @@ The script also reads `.env` at startup, so `APP_BIND=0.0.0.0` and `APP_PORT`
 set there are picked up automatically without a command-line override each run.
 
 Keep `AUTH_ENABLED=true` (the default) before binding outside loopback. Do not
-expose this port directly to the public internet. To build a clickable app wrapper:
+expose this port directly to the public internet. To build a standalone desktop app:
 
 ```bash
 ./build-macos-app.sh
 ```
+
+The builder uses Python 3.11+ and an isolated `.venv-build-macos` environment.
+It bundles Python, application dependencies, and assets into `Odysseus.app`
+and creates `dist/macos-arm64/Odysseus-macos-arm64-unsigned.dmg` on Apple
+Silicon (or `macos-x86_64` on Intel). Build on each architecture separately.
+The minimum declared system version is macOS 14; use CI builds for the tested
+target OS/architecture. A build on a newer Mac can include dependencies that
+require that newer OS.
+
+Open the DMG and drag **Odysseus** to **Applications**. End users do not need
+Python, Homebrew, or the source checkout. The app runs from the menu bar, opens
+the browser at `http://127.0.0.1:7860`, and provides **Open Odysseus** and **Exit**.
+Create your admin account on the first-run page, then select a project using
+**Workspace** in Agent mode. Optional external tools and model servers remain
+separate installations.
+
+Data stays in `~/.odysseus/data`; configuration goes in `~/.odysseus/.env`,
+outside the signed application. Set `ODYSSEUS_CONFIG_DIR` to override the
+configuration directory. Startup errors include the path to
+`~/.odysseus/data/logs/launcher.log`. Unsigned builds are for local testing;
+see [desktop release signing](../docs/desktop-releases.md) before distribution.
+
+The older checkout-dependent wrapper is still available as
+`./build-macos-launcher.sh`. It retains the native project-folder picker and
+first-run Homebrew setup, and requires the checkout to remain in place.
 
 <details>
 <summary>Cookbook, GPU, Ollama, and troubleshooting notes</summary>
@@ -422,6 +447,105 @@ Local GPU *serving* of vLLM/SGLang needs Linux/WSL2; for a local model on Window
 
 Open `http://localhost:7000`, log in with the generated admin password,
 and configure everything else inside **Settings**.
+
+### Windows desktop bundle
+
+Build on Windows with Python 3.11+ installed:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\build-windows-portable.ps1
+```
+
+The builder uses an isolated `.venv-build-windows` environment and the checked-in
+`Odysseus.spec`. It writes `dist\windows\Odysseus-windows-unsigned.zip` without removing
+other platform builds. Extract the entire zip and run `Odysseus\Odysseus.exe`;
+keep its `_internal` folder beside the executable. End users do not need to
+install Python. Git Bash is still needed for the agent's shell tools.
+
+The browser opens after the server starts, at `http://127.0.0.1:7011` by default.
+
+### Windows installer
+
+On Windows, the desktop build produces both a portable ZIP and a per-user
+installer. Install [Inno Setup 6](https://jrsoftware.org/isinfo.php) on the
+build machine, then run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\build-windows-portable.ps1
+```
+
+The installer is written to
+`dist\windows\Odysseus-Setup-unsigned.exe`, installs under the current user's
+Local AppData without requiring administrator rights, and adds Start Menu
+shortcuts. The **Update coding model** shortcut refreshes the default Ollama tag
+when you choose to run it. **Enable weekly model refresh** and **Disable weekly
+model refresh** shortcuts let you opt into or remove a Sunday 3:00 AM refresh
+while you are signed in. The installer does not bundle Ollama or model weights;
+those are separate downloads. To build just the portable ZIP, pass
+`-SkipInstaller`.
+
+### iPhone and iPad
+
+iOS does not run the Odysseus Python server or a local Ollama model. Install
+Odysseus as a home-screen web app that connects to the server running on your
+Windows PC or Mac:
+
+1. Keep Odysseus running on the host computer. Leave it bound to loopback and
+  expose it through a trusted HTTPS private-access proxy, such as Tailscale
+  Serve or Caddy configured for your private network. Do not expose the app or
+  Ollama ports directly to the public internet.
+2. Install and connect the private-access client on both the host and iPhone/iPad.
+  Keep Odysseus authentication enabled.
+3. On the iPhone/iPad, open the proxy's **HTTPS** address in Safari. Tap **Share**,
+  then **Add to Home Screen**, and launch the new Odysseus icon.
+
+The app and model continue running on the host computer, which must stay awake
+and connected. The iPhone is the client, not the model server. HTTPS is required
+for the full service-worker/PWA behavior; use the certificate and proxy guidance
+in [HTTPS + LAN/Tailscale exposure](#https--lantailscale-exposure).
+
+### Refreshing a local coding model
+
+Ollama tags may receive updated weights, but Odysseus does not replace a model
+silently at every launch. On Windows, run the Start Menu **Update coding model**
+shortcut, or from the source checkout run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\update-coding-model.ps1
+```
+
+The default is `qwen2.5-coder:3b`; use `-Model <ollama-tag>` to refresh another
+tag. On macOS, with Ollama running, use:
+
+```bash
+./scripts/update-coding-model.sh [ollama-tag]
+```
+
+`ollama pull` checks the current tag and downloads changed weights. Ensure you
+have enough disk space; after updating, restart or reselect the model if it was
+already loaded. iOS uses the model running on the connected host and does not
+download model weights to the phone.
+On a fresh installation, use the first-run page to create your admin account.
+Choose **Exit** from the tray menu to stop the server.
+
+Persistent data lives in `%USERPROFILE%\.odysseus\data`, outside the application
+folder, so replacing the extracted bundle preserves accounts and projects.
+An optional `.env` beside `Odysseus.exe` can set `APP_PORT`, `APP_BIND`, and
+`ODYSSEUS_DATA_DIR`; exported environment variables take priority. Startup
+errors appear in a dialog and are recorded under the data folder in
+`logs\launcher.log`, with application logs in `logs\app.log`.
+
+To verify a bundle with disposable data and no browser or model downloads:
+
+```powershell
+python scripts/smoke_desktop.py --executable dist/windows/Odysseus/Odysseus.exe
+```
+
+The **Desktop startup** GitHub Actions workflow builds and tests Windows x64,
+macOS Apple Silicon, and macOS Intel packages. It checks fresh accounts,
+restart/login, native UI initialization, and Mac read-only disk-image launch,
+then uploads unsigned packages and SHA-256 checksums. Signing is opt-in; see
+[desktop release signing](../docs/desktop-releases.md).
 
 ## Troubleshooting & Advanced Setup
 

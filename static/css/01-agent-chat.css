@@ -505,7 +505,8 @@ body.bg-pattern-ascii-fireflies {
       display: none;
     }
     #sidebar-search-btn,
-    #sidebar-new-chat-btn {
+    #sidebar-new-chat-btn,
+    #sidebar-code-btn {
       margin: 0;
       padding: 8px 8px;
     }

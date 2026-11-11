@@ -258,7 +258,15 @@ fi
 # Setup is done — drop the setup-failure handler, and clean up the background
 # opener when the server exits or the user presses Ctrl+C.
 trap - ERR
-trap '[ -n "$POLLER_PID" ] && kill "$POLLER_PID" 2>/dev/null; [ -n "$APFEL_PID" ] && kill "$APFEL_PID" 2>/dev/null; [ -n "$CHROMA_PID" ] && kill "$CHROMA_PID" 2>/dev/null' EXIT INT TERM
+SERVER_PID=""
+cleanup() {
+    for pid in "$POLLER_PID" "$APFEL_PID" "$CHROMA_PID" "$SERVER_PID"; do
+        [ -z "$pid" ] || kill "$pid" 2>/dev/null || true
+    done
+}
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
 echo
 echo "▶ Starting Odysseus — it will open in your browser at $URL"
@@ -267,4 +275,6 @@ if [ -n "$TAILSCALE_URL" ]; then
 fi
 echo "  (this takes a few seconds; press Ctrl+C here to stop)"
 echo
-"$VENV_PY" -m uvicorn app:app --host "$HOST" --port "$PORT"
+"$VENV_PY" -m uvicorn app:app --host "$HOST" --port "$PORT" &
+SERVER_PID=$!
+wait "$SERVER_PID"

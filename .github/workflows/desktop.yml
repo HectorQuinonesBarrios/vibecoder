@@ -1,0 +1,111 @@
+name: Desktop startup
+
+on:
+  pull_request:
+    paths:
+      - 'launcher.py'
+      - '*windows*.ps1'
+      - '*macos*.sh'
+      - 'Odysseus.spec'
+      - 'scripts/build_macos.py'
+      - 'scripts/smoke_macos_dmg.py'
+      - 'scripts/sign-windows.ps1'
+      - 'requirements*.txt'
+      - 'src/runtime_paths.py'
+      - 'scripts/smoke_desktop.py'
+      - 'tests/test_launcher.py'
+      - 'tests/test_desktop_packaging.py'
+      - 'installer/windows/**'
+      - 'website/setup.md'
+      - 'docs/desktop-releases.md'
+      - 'scripts/update-coding-model.*'
+      - '.github/workflows/desktop.yml'
+  workflow_dispatch:
+  push:
+    branches: ['codex/desktop-*']
+
+permissions:
+  contents: read
+
+jobs:
+  native-startup:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-14, macos-15-intel]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+      - name: Install dependencies
+        run: |
+          python -m pip install --require-hashes --only-binary=:all: --no-deps -r requirements-bootstrap.txt
+          python -m pip install -r requirements.txt
+      - name: Desktop regressions
+        run: python -m pytest -q tests/test_launcher.py tests/test_runtime_paths.py tests/test_desktop_packaging.py
+      - name: Fresh-data startup
+        run: python scripts/smoke_desktop.py
+
+  windows-bundle:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+      - name: Install Inno Setup
+        shell: powershell
+        run: choco install innosetup -y --no-progress
+      - name: Build Windows bundle and installer
+        shell: powershell
+        run: .\build-windows-portable.ps1
+      - name: Initialize Windows desktop UI and check restart
+        run: python scripts/smoke_desktop.py --executable dist/windows/Odysseus/Odysseus.exe --ui
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: Odysseus-windows
+          path: |
+            dist/windows/Odysseus-windows-unsigned.zip
+            dist/windows/*.sha256
+            dist/windows/Odysseus-Setup-unsigned.exe
+          if-no-files-found: error
+
+  macos-bundle:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-14
+            arch: arm64
+          - os: macos-15-intel
+            arch: x86_64
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+      - name: Build and verify standalone Mac app
+        run: ./build-macos-app.sh
+      - name: Initialize menu-bar UI and check restart
+        run: python scripts/smoke_desktop.py --executable dist/macos-${{ matrix.arch }}/Odysseus.app/Contents/MacOS/Odysseus --ui
+      - name: Verify distribution image from read-only mount
+        run: python scripts/smoke_macos_dmg.py dist/macos-${{ matrix.arch }}/Odysseus-macos-${{ matrix.arch }}-unsigned.dmg
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: Odysseus-macos-${{ matrix.arch }}
+          path: |
+            dist/macos-${{ matrix.arch }}/*.dmg
+            dist/macos-${{ matrix.arch }}/*.sha256
+          if-no-files-found: error

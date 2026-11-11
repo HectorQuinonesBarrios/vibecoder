@@ -3468,6 +3468,35 @@ function initializeEventListeners() {
     });
   }
 
+  const sidebarCodeBtn = el('sidebar-code-btn');
+  if (sidebarCodeBtn) {
+    sidebarCodeBtn.addEventListener('click', async (e) => {
+      if (e) { e.preventDefault(); e.stopImmediatePropagation(); }
+      if (window.innerWidth < 768) {
+        el('sidebar')?.classList.add('hidden');
+        el('sidebar-backdrop')?.classList.remove('visible');
+        window.syncRailSide?.();
+      }
+
+      await _handleNewChatAction({ preferModel: false, focus: false });
+      window.__odysseusSetChatMode?.('agent');
+
+      let workspace = workspaceModule.getWorkspace();
+      if (!workspace) {
+        await workspaceModule.loadDefaultWorkspace();
+        workspace = workspaceModule.getWorkspace();
+      }
+      if (!workspace) await workspaceModule.openWorkspaceBrowser();
+
+      const input = el('message');
+      if (input) {
+        input.placeholder = 'Describe the coding task for your project…';
+        try { input.focus(); } catch (_) {}
+      }
+      uiModule.showToast(workspace ? 'Code agent ready' : 'Choose a project for the code agent');
+    });
+  }
+
   // Delete session button on icon rail
   const railDelete = el('rail-delete-session');
   if (railDelete) {

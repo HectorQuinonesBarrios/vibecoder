@@ -8,6 +8,10 @@ build/
 !static/js/editor/build/
 venv/
 .venv/
+.venv-build-windows/
+.venv-build-macos/
+*.p12
+*.pfx
 *.egg
 
 # Environment
