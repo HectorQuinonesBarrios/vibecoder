@@ -34,6 +34,17 @@ function _isChatMode() {
   return !!(b && b.classList.contains('active'));
 }
 
+function _isIOSDevice() {
+  const ua = navigator.userAgent || '';
+  return /iPad|iPhone|iPod/.test(ua)
+    || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+
+function _isInstalledPWA() {
+  return navigator.standalone === true
+    || !!(window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+}
+
 export function syncWorkspaceIndicator(path) {
   const chat = _isChatMode();
   const pill = document.getElementById('workspace-indicator-btn');
@@ -223,6 +234,25 @@ export function initWorkspace() {
   // Restore persisted workspace into the pill on load.
   const current = getWorkspace();
   syncWorkspaceIndicator(current);
+  const installIOS = document.getElementById('sidebar-ios-install-btn');
+  if (installIOS && _isIOSDevice() && !_isInstalledPWA()) {
+    installIOS.hidden = false;
+    installIOS.addEventListener('click', async () => {
+      if (window.innerWidth < 768) {
+        document.getElementById('sidebar')?.classList.add('hidden');
+        document.getElementById('sidebar-backdrop')?.classList.remove('visible');
+        window.syncRailSide?.();
+      }
+      const message = window.isSecureContext
+        ? 'In Safari, tap Share, then Add to Home Screen. Odysseus will appear as an app icon. Keep your Windows PC or Mac running; it hosts the server and model.'
+        : 'First open this Odysseus address over HTTPS in Safari, then tap Share and Add to Home Screen. HTTPS is required for the iPhone app experience. Your Windows PC or Mac must stay running to host the server and model.';
+      await uiModule?.styledConfirm?.(message, {
+        title: 'Install Odysseus on iPhone/iPad',
+        confirmText: 'Got it',
+        cancelText: 'Close',
+      });
+    });
+  }
   // A browser has no trustworthy local launch directory. Let a deployment
   // provide one explicitly, and only use it when the user has no saved choice.
   if (!current) loadDefaultWorkspace();
